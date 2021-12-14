@@ -101,3 +101,15 @@ class CrossEntropyLoss(nn.Module):
         loss = -torch.mean(targets * torch.log(outputs) +
                            (1 - targets) * torch.log(1 - outputs))
         return loss
+
+
+class GeneratorLoss(nn.Module):
+    def forward(self, outputs, targets, dis_outputs):
+        loss = torch.mean(targets - outputs) - torch.mean(dis_outputs)
+        return loss
+
+
+class DiscriminatorLoss(nn.Module):
+    def forward(self, dis_output_gt, dis_output_output):
+        loss = -torch.mean(dis_output_gt) - torch.mean(torch.log(1 - dis_output_output))
+        return loss

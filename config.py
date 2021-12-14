@@ -63,7 +63,7 @@ def set_train_args():
     arg_parser.add_argument('--batch-size', type=int, default=18)
     arg_parser.add_argument('--n-threads', type=int, default=64)
     arg_parser.add_argument('--finetune', action='store_true')
-    arg_parser.add_argument('--lr', type=float, default=2e-4)
+    arg_parser.add_argument('--lr', type=float, default=1e-4)
     arg_parser.add_argument('--lr-finetune', type=float, default=5e-5)
     arg_parser.add_argument('--max-iter', type=int, default=1000000)
     arg_parser.add_argument('--log-interval', type=int, default=None)
