@@ -87,25 +87,30 @@ for i in tqdm(range(start_iter, cfg.max_iter)):
 
     image, mask, gt = [x.to(cfg.device) for x in next(iterator_train)]
 
-    discr_gt = discriminator(gt[:, 0, :, :, :], mask[:, 0, :, :, :])
     output = generator(image, mask)[:, 0, :, :, :]
-    discr_output = discriminator(output.detach(), mask[:, 0, :, :, :])
-
-    # discriminator loss
-    discriminator.zero_grad()
-    discriminator_loss = discriminator_criterion(discr_gt, discr_output)
-    discriminator_loss.backward()
-    discriminator_optimizer.step()
+    output_comp = mask[:, 0, :, :, :] * gt[:, 0, :, :, :] + (1 - mask[:, 0, :, :, :]) * output
+    discr_output = discriminator(output_comp, mask[:, 0, :, :, :])
 
     # generator loss
     generator.zero_grad()
     generator_loss = 0.0
-    loss_dict = generator_criterion(mask[:, 0, :, :, :], output, gt[:, 0, :, :, :], discr_output.detach())
+    loss_dict = generator_criterion(output_comp, discr_output)
     for key, coef in cfg.LAMBDA_DICT_IMG_INPAINTING.items():
         value = coef * loss_dict[key]
         generator_loss += value
     generator_loss.backward()
     generator_optimizer.step()
+
+    # discriminator loss
+    discr_gt = discriminator(gt[:, 0, :, :, :], mask[:, 0, :, :, :])
+    discr_output = discriminator(output_comp.detach(), mask[:, 0, :, :, :])
+    discriminator.zero_grad()
+    discriminator_loss = discriminator_criterion(discr_gt, discr_output)
+    discriminator_loss.backward()
+    discriminator_optimizer.step()
+
+
+
 
     # save checkpoint
     if (i + 1) % cfg.save_model_interval == 0 or (i + 1) == cfg.max_iter:
