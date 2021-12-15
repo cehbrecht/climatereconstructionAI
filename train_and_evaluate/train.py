@@ -39,6 +39,7 @@ iterator_train = iter(data.DataLoader(dataset_train, batch_size=cfg.batch_size,
 lstm = True
 if cfg.lstm_steps == 0:
     lstm = False
+
 generator = PConvLSTM(image_size=cfg.image_size,
                       num_enc_dec_layers=cfg.encoding_layers,
                       num_pool_layers=cfg.pooling_layers,
@@ -59,19 +60,24 @@ else:
     lr = cfg.lr
 
 # define optimizer and loss functions
-generator_optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, generator.parameters()), lr=lr, betas=(0.5, 0.5))
-discriminator_optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, discriminator.parameters()), lr=lr, betas=(0.5, 0.5))
+generator_optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, generator.parameters()), lr=lr, betas=(0.5, 0.99))
+discriminator_optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, discriminator.parameters()), lr=lr, betas=(0.5, 0.99))
 
 generator_criterion = GeneratorLoss().to(cfg.device)
 discriminator_criterion = DiscriminatorLoss().to(cfg.device)
-inpainting_criterion = InpaintingLoss(VGG16FeatureExtractor()).to(cfg.device)
 
 # define start point
 start_iter = 0
-if cfg.resume:
-    start_iter = load_ckpt(
-        cfg.resume, [('model', generator)], cfg.device, [('optimizer', optimizer)])
-    for param_group in optimizer.param_groups:
+if cfg.resume_iter:
+    # load generator
+    start_iter = load_ckpt('{}/ckpt/generator_{}'.format(cfg.snapshot_dir, cfg.resume_iter),
+                           [('model', generator)], cfg.device, [('optimizer', generator_optimizer)])
+    # load discriminator
+    load_ckpt('{}/ckpt/discriminator_{}'.format(cfg.snapshot_dir, cfg.resume_iter),
+              [('model', discriminator)], cfg.device, [('optimizer', discriminator_optimizer)])
+    for param_group in generator_optimizer.param_groups:
+        param_group['lr'] = lr
+    for param_group in discriminator_optimizer.param_groups:
         param_group['lr'] = lr
     print('Starting from iter ', start_iter)
 
@@ -82,25 +88,33 @@ for i in tqdm(range(start_iter, cfg.max_iter)):
 
     image, mask, gt = [x.to(cfg.device) for x in next(iterator_train)]
 
-    dis_gt = discriminator(gt[:, 0, :, :, :], mask[:, 0, :, :, :])
-    fake = generator(image, mask)[:, 0, :, :, :]
-    dis_fake = discriminator(fake.detach(), mask[:, 0, :, :, :])
+    discr_gt = discriminator(gt[:, 0, :, :, :], mask[:, 0, :, :, :])
+    output = generator(image, mask)[:, 0, :, :, :]
+    discr_output = discriminator(output.detach(), mask[:, 0, :, :, :])
 
-    inpainting_loss = 0.0
-    loss_dict = inpainting_criterion(mask[:, 0, :, :, :], fake, gt[:, 0, :, :, :])
-    for key, coef in cfg.LAMBDA_DICT_IMG_INPAINTING.items():
-        value = coef * loss_dict[key]
-        inpainting_loss += value
-
+    # discriminator loss
     discriminator.zero_grad()
-    discriminator_loss = discriminator_criterion(dis_gt, dis_fake)
+    discriminator_loss = discriminator_criterion(discr_gt, discr_output)
     discriminator_loss.backward()
     discriminator_optimizer.step()
 
+    # generator loss
     generator.zero_grad()
-    generator_loss = generator_criterion(fake, gt[:, :, 0, :, :], dis_fake.detach()) + inpainting_loss
+    generator_loss = 0.0
+    loss_dict = generator_criterion(mask[:, 0, :, :, :], output, gt[:, 0, :, :, :], discr_output.detach())
+    for key, coef in cfg.LAMBDA_DICT_IMG_INPAINTING.items():
+        value = coef * loss_dict[key]
+        generator_loss += value
+
     generator_loss.backward()
     generator_optimizer.step()
+
+    # save checkpoint
+    if (i + 1) % cfg.save_model_interval == 0 or (i + 1) == cfg.max_iter:
+        save_ckpt('{:s}/ckpt/generator_{:d}.pth'.format(cfg.snapshot_dir, i + 1),
+                  [('model', generator)], [('optimizer', generator_optimizer)], i + 1)
+        save_ckpt('{:s}/ckpt/discriminator_{:d}.pth'.format(cfg.snapshot_dir, i + 1),
+                  [('model', discriminator)], [('optimizer', discriminator_optimizer)], i + 1)
 
     # create snapshot image
     if cfg.log_interval and (i + 1) % cfg.log_interval == 0:

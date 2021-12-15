@@ -75,41 +75,35 @@ class InpaintingLoss(nn.Module):
         return loss_dict
 
 
-class WeightedCrossEntropyLoss(nn.Module):
-    # weight should be a 1D Tensor assigning weight to each of the classes.
-    def __init__(self, weight=None, LAMBDA=None):
-        super().__init__()
-        self._weight = weight
-        self._lambda = LAMBDA
-
-    def forward(self, input, target, mask):
-        target = target.squeeze(1)
-        class_index = torch.zeros_like(target).long()
-        for i, threshold in enumerate([0, 5, 7, 8, 10]):
-            class_index[target >= threshold] = i
-
-        error = F.cross_entropy(input, class_index, weight=self._weight, reduction='none')
-        error = error.unsqueeze(2)
-        return torch.mean(error * (mask))
-
-
 class CrossEntropyLoss(nn.Module):
     def __init__(self):
         super().__init__()
 
-    def forward(self, outputs, targets):
+    def forward(self, output, targets):
         loss = -torch.mean(targets * torch.log(outputs) +
                            (1 - targets) * torch.log(1 - outputs))
         return loss
 
 
 class GeneratorLoss(nn.Module):
-    def forward(self, outputs, targets, dis_outputs):
-        loss = torch.mean(targets - outputs) - torch.mean(dis_outputs)
-        return loss
+    def __init__(self):
+        super().__init__()
+        self.l1 = nn.L1Loss()
+
+    def forward(self, mask, output, gt, discr_output):
+        loss_dict = {}
+
+        output_comp = mask * gt + (1 - mask) * output
+
+        loss_dict['hole'] = self.l1((1 - mask) * output, (1 - mask) * gt)
+        loss_dict['valid'] = self.l1(mask * output, mask * gt)
+        loss_dict['prc'] = self.l1(gt, output) + self.l1(gt, output_comp)
+        loss_dict['tv'] = total_variation_loss(output_comp)
+        loss_dict['gan'] = - torch.mean(torch.log(discr_output))
+        return loss_dict
 
 
 class DiscriminatorLoss(nn.Module):
-    def forward(self, dis_output_gt, dis_output_output):
-        loss = -torch.mean(dis_output_gt) - torch.mean(torch.log(1 - dis_output_output))
+    def forward(self, discr_gt, discr_output):
+        loss = -torch.mean(discr_gt) - torch.mean(torch.log(1 - discr_output))
         return loss

@@ -105,7 +105,7 @@ class NetCDFLoader(torch.utils.data.Dataset):
                 # get indices that occur more than once
                 unique, counts = np.unique(mask_indices[i], return_counts=True)
                 copy_indices = [(index, counts[index] - 1) for index in range(len(counts)) if counts[index] > 1]
-                if img_data.ndim == 4:
+                if mask_data.ndim == 4:
                     data = torch.from_numpy(mask_data[unique, 0, :, :])
                 else:
                     data = torch.from_numpy(mask_data[unique, :, :])

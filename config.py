@@ -3,10 +3,7 @@ import argparse
 import torch
 
 LAMBDA_DICT_IMG_INPAINTING = {
-    'valid': 1.0, 'hole': 6.0, 'tv': 0.1, 'prc': 0.05, 'style': 120.0
-}
-LAMBDA_DICT_PR_INPAINTING = {
-    'SSL-OUT': 1.0,  # 'SSL-OUT-COMP': 1.0, 'valid': 1.0, 'hole': 6.0, 'tv': 0.1, 'prc': 0.05, 'style': 120.0
+    'valid': 1.0, 'hole': 6.0, 'tv': 0.1, 'prc': 0.05, 'gan': 1.0
 }
 
 PDF_BINS = [0, 0.01, 0.02, 0.1, 1, 2, 10, 100]
@@ -25,7 +22,7 @@ snapshot_dir = None
 snapshot_dirs = None
 data_root_dir = None
 mask_dir = None
-resume = None
+resume_iter = None
 device = None
 batch_size = None
 n_threads = None
@@ -58,7 +55,7 @@ def set_train_args():
     arg_parser.add_argument('--mask-dir', type=str, default='masks/')
     arg_parser.add_argument('--img-names', type=str, default='train.h5')
     arg_parser.add_argument('--mask-names', type=str, default='mask.h5')
-    arg_parser.add_argument('--resume', type=str)
+    arg_parser.add_argument('--resume-iter', type=int)
     arg_parser.add_argument('--device', type=str, default='cuda')
     arg_parser.add_argument('--batch-size', type=int, default=18)
     arg_parser.add_argument('--n-threads', type=int, default=64)
@@ -84,7 +81,7 @@ def set_train_args():
     global snapshot_dir
     global data_root_dir
     global mask_dir
-    global resume
+    global resume_iter
     global device
     global batch_size
     global n_threads
@@ -111,7 +108,7 @@ def set_train_args():
     snapshot_dir = args.snapshot_dir
     data_root_dir = args.data_root_dir
     mask_dir = args.mask_dir
-    resume = args.resume
+    resume_iter = args.resume
     torch.backends.cudnn.benchmark = True
     device = torch.device(args.device)
     batch_size = args.batch_size
