@@ -3,7 +3,7 @@ import argparse
 import torch
 
 LAMBDA_DICT_IMG_INPAINTING = {
-    'valid': 1.0, 'hole': 6.0, 'tv': 0.1, 'prc': 0.05, 'gan': 1.0
+    'prc': 1.0, 'gan': 1.0 #'valid': 1.0, 'hole': 6.0, 'tv': 0.1, 'prc': 0.05, 'gan': 1.0
 }
 
 PDF_BINS = [0, 0.01, 0.02, 0.1, 1, 2, 10, 100]
