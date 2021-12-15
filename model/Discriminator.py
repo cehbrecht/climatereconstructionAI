@@ -40,6 +40,7 @@ class Discriminator(nn.Module):
                 image_size,
                 (3, 3), (2, 2), (1, 1)))
             net.append(nn.LeakyReLU(negative_slope=0.2, inplace=True))
+        print(image_size * ((image_size // (2 ** (self.num_enc_dec_layers - 1))) ** 2))
         net.append(nn.Linear(image_size * ((image_size // (2 ** (self.num_enc_dec_layers - 1))) ** 2), image_size))
         net.append(nn.LeakyReLU(negative_slope=0.2, inplace=True))
         net.append(nn.Linear(image_size, 1))
@@ -50,6 +51,7 @@ class Discriminator(nn.Module):
         h = torch.cat([input, mask], dim=1)
         for net in self.conv:
             if isinstance(net, nn.Linear):
+                print(h.shape)
                 h = torch.flatten(h, start_dim=1)
             h = net(h)
         return h
