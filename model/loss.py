@@ -21,7 +21,7 @@ class GeneratorLoss(nn.Module):
 
         loss_dict['hole'] = self.l1((1 - mask) * output, (1 - mask) * gt)
         loss_dict['valid'] = self.l1(mask * output, mask * gt)
-        loss_dict['prc'] = self.l1(gt, output) + self.l1(gt, output_comp)
+        loss_dict['prc'] = self.l1(gt, output_comp)# + self.l1(gt, output)
         loss_dict['tv'] = total_variation_loss(output_comp)
         loss_dict['gan'] = - torch.mean(torch.log(discr_output))
         return loss_dict
