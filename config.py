@@ -108,7 +108,7 @@ def set_train_args():
     snapshot_dir = args.snapshot_dir
     data_root_dir = args.data_root_dir
     mask_dir = args.mask_dir
-    resume_iter = args.resume
+    resume_iter = args.resume_iter
     torch.backends.cudnn.benchmark = True
     device = torch.device(args.device)
     batch_size = args.batch_size

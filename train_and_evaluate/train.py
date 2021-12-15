@@ -2,15 +2,14 @@ import os
 import torch
 import sys
 
-from torch import nn
-
 sys.path.append('./')
-from utils.featurizer import VGG16FeatureExtractor
-from model.loss import CrossEntropyLoss, InpaintingLoss, GeneratorLoss, DiscriminatorLoss
+
+from model.loss import GeneratorLoss, DiscriminatorLoss
 from tensorboardX import SummaryWriter
 from torch.utils import data
 from tqdm import tqdm
-from model.PConvLSTM import PConvLSTM, Discriminator
+from model.Generator import PConvLSTMGenerator
+from model.Discriminator import Discriminator
 from utils.io import load_ckpt, save_ckpt
 from utils.netcdfloader import NetCDFLoader, InfiniteSampler
 from utils.evaluation import create_snapshot_image
@@ -40,12 +39,12 @@ lstm = True
 if cfg.lstm_steps == 0:
     lstm = False
 
-generator = PConvLSTM(image_size=cfg.image_size,
-                      num_enc_dec_layers=cfg.encoding_layers,
-                      num_pool_layers=cfg.pooling_layers,
-                      num_in_channels=len(cfg.data_types) * (2 * cfg.prev_next_steps + 1),
-                      num_out_channels=cfg.out_channels,
-                      lstm=lstm).to(cfg.device)
+generator = PConvLSTMGenerator(image_size=cfg.image_size,
+                               num_enc_dec_layers=cfg.encoding_layers,
+                               num_pool_layers=cfg.pooling_layers,
+                               num_in_channels=len(cfg.data_types) * (2 * cfg.prev_next_steps + 1),
+                               num_out_channels=cfg.out_channels,
+                               lstm=lstm).to(cfg.device)
 
 discriminator = Discriminator(image_size=cfg.image_size,
                               num_enc_dec_layers=cfg.encoding_layers,
@@ -105,7 +104,6 @@ for i in tqdm(range(start_iter, cfg.max_iter)):
     for key, coef in cfg.LAMBDA_DICT_IMG_INPAINTING.items():
         value = coef * loss_dict[key]
         generator_loss += value
-
     generator_loss.backward()
     generator_optimizer.step()
 
