@@ -16,8 +16,6 @@ class GeneratorLoss(nn.Module):
 
     def forward(self, mask, output, gt, discr_output):
         loss_dict = {}
-
-
         loss_dict['hole'] = self.l1((1 - mask) * output, (1 - mask) * gt)
         loss_dict['valid'] = self.l1(mask * output, mask * gt)
         loss_dict['prc'] = self.l1(gt, output)# + self.l1(gt, output)
