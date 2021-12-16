@@ -14,14 +14,14 @@ class GeneratorLoss(nn.Module):
         super().__init__()
         self.l1 = nn.L1Loss()
 
-    def forward(self, output, gt, discr_output):
+    def forward(self, mask, output, gt, discr_output):
         loss_dict = {}
 
 
-        #loss_dict['hole'] = self.l1((1 - mask) * output, (1 - mask) * gt)
-        #loss_dict['valid'] = self.l1(mask * output, mask * gt)
+        loss_dict['hole'] = self.l1((1 - mask) * output, (1 - mask) * gt)
+        loss_dict['valid'] = self.l1(mask * output, mask * gt)
         loss_dict['prc'] = self.l1(gt, output)# + self.l1(gt, output)
-        #loss_dict['tv'] = total_variation_loss(output_comp)
+        loss_dict['tv'] = total_variation_loss(output)
         loss_dict['gan'] = - torch.mean(torch.log(discr_output))
         return loss_dict
 

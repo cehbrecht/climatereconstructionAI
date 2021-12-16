@@ -94,7 +94,7 @@ for i in tqdm(range(start_iter, cfg.max_iter)):
     # generator loss
     generator.zero_grad()
     generator_loss = 0.0
-    loss_dict = generator_criterion(output_comp, gt[:, 0, :, :, :], discr_output)
+    loss_dict = generator_criterion(mask[:, 0, :, :, :], output_comp, gt[:, 0, :, :, :], discr_output)
     for key, coef in cfg.LAMBDA_DICT_IMG_INPAINTING.items():
         value = coef * loss_dict[key]
         generator_loss += value
@@ -108,9 +108,6 @@ for i in tqdm(range(start_iter, cfg.max_iter)):
     discriminator_loss = discriminator_criterion(discr_gt, discr_output)
     discriminator_loss.backward()
     discriminator_optimizer.step()
-
-
-
 
     # save checkpoint
     if (i + 1) % cfg.save_model_interval == 0 or (i + 1) == cfg.max_iter:
